@@ -1,0 +1,205 @@
+import math
+import sympy as sym
+from sympy import Symbol, integrate
+
+import matplotlib.pyplot as plt
+import numpy as np
+import tkinter as tk
+
+from sympy.parsing.sympy_parser import(parse_expr, standard_transformations, implicit_multiplication_application)
+transformations = (standard_transformations + (implicit_multiplication_application,))
+
+def get_expression():
+    expression = function_entry.get()
+    expression = expression.replace("^","**")
+    playerfunc = parse_expr(expression,transformations=transformations) 
+    return playerfunc
+
+
+
+x = sym.symbols('x')
+
+def integralcalcwithbounds():
+    try:
+        playerfunc=get_expression()
+        lowerbound = float(lower_entry.get())
+        upperbound = float(upper_entry.get())
+        subintervals = int(subinterval_entry.get())
+
+        delta_x = (upperbound - lowerbound) / subintervals
+        
+        total_sum = 0 
+
+        for n in range(1,subintervals+1):
+
+            midpoint = lowerbound + (n-0.5) * delta_x
+            total_sum += playerfunc.subs(x,midpoint)
+
+        answer = delta_x * total_sum    
+        
+        result_label.config(text=str(answer))
+
+    except Exception as e:
+       result_label.config(text=str(e))
+
+def integralcalcwithoutbounds():
+    try:
+        playerfunc=get_expression()
+        result = sym.integrate(playerfunc,x)
+        result_label.config(text=str(integrate(playerfunc,x)).replace("**","^"))
+    except Exception as e:
+       result_label.config(text=str(e))
+
+
+def derivativecalc():
+  # Derivative Calcultaor
+    try:
+        playerfunc=get_expression()
+        derivative = sym.diff(playerfunc,x)
+        result_label.config(text=str(derivative).replace("**","^"))
+    except Exception as e:
+       result_label.config(text=str(e))
+
+
+# Userinterface
+
+window = tk.Tk()
+window.title("AP Calculus Calculator")
+window.geometry("570x370")
+window.configure(bg="peachpuff")
+
+# Model
+
+shape_var = tk.StringVar()
+shape_var.set("square")
+
+def cross_section_graph():
+    try:
+        f = get_expression()
+
+        a = float(lower_entry.get())
+        b = float(upper_entry.get())
+        n = int(subinterval_entry.get())
+
+        shape = shape_var.get()
+
+        x_vals = np.linspace(a,b,n)
+        fig, ax = plt.subplots()
+
+        ax.set_xlim(a,b)
+        max_height = max(float(f.subs(x,val))for val in x_vals)
+        ax.set_ylim(0,max_height+1)
+
+        for x0 in x_vals:
+            h = float(f.subs(x,x0))
+            if h<0:
+                continue
+
+            width = (b-a)/n *0.8
+
+            if shape == "square":
+                ys = [0, h, h, 0]
+                xs = [x0,x0,x0+width,x0+width]
+                ax.fill(xs,ys,alpha=0.5)
+            elif shape == "semicircle":
+                theta = np.linspace(0,np.pi, 30)
+                radius = h
+
+                xs = x0 + width/2 + (radius * np.cos(theta))
+                ys = radius * np.sin(theta)
+                ax.fill(xs,ys,alpha=0.5)
+            elif shape == "triangle":
+                xs= [x0,x0+width/2,x0+width]
+                ys=[0,h,0]
+                ax.fill(xs,ys,alpha=0.5)
+            else:  
+                continue
+        
+        ax.set_title("Cross Section Shapes Along f(x)")
+        ax.set_aspect('auto')
+        plt.show()
+
+    except Exception as e:
+        result_label.config(text=str(e))
+
+
+# Function Input
+
+function_label = tk.Label(window, text="Function", bg="orange")
+function_label.place(relx=0.5,rely=0.1,anchor=tk.CENTER)
+
+function_entry = tk.Entry(window,width=40)
+function_entry.place(relx=0.5,rely=0.15,anchor=tk.CENTER)
+
+# LowerBound
+
+lower_label = tk.Label(window, text="Lower Bound", bg="orange")
+lower_label.place(relx=0.25,rely=0.3,anchor=tk.CENTER)
+
+lower_entry = tk.Entry(window,width=20)
+lower_entry.place(relx=0.25,rely=0.35,anchor=tk.CENTER)
+
+
+# UpperBound
+
+upper_label = tk.Label(window, text="Upper Bound", bg="orange")
+upper_label.place(relx=0.5,rely=0.3,anchor=tk.CENTER)
+
+
+upper_entry = tk.Entry(window,width=20)
+upper_entry.place(relx=0.5,rely=0.35,anchor=tk.CENTER)
+
+
+# Subintervals
+subinterval_label = tk.Label(window, text="Subintervals", bg = "orange")
+subinterval_label.place(relx=0.75,rely=0.3,anchor=tk.CENTER)
+
+
+subinterval_entry = tk.Entry(window,width=20)
+subinterval_entry.place(relx=0.75,rely=0.35,anchor=tk.CENTER)
+
+
+
+# Derivative Button
+
+deriv_button = tk.Button(
+  window, text = "Derivative",
+  command=derivativecalc, bg="orange"
+)
+deriv_button.place(relx=0.25,rely=0.5,anchor=tk.CENTER)
+
+
+
+# IntegralwithBounds Button
+
+defintegral_button = tk.Button(
+  window, text = "Definite Integral",
+  command=integralcalcwithbounds, bg="orange"
+)
+defintegral_button.place(relx=0.5,rely=0.5,anchor=tk.CENTER)
+
+
+# IntegralwithoutBounds Button
+
+indefintegral_button = tk.Button(
+  window, text = "Indefinite Integral",
+  command=integralcalcwithoutbounds, bg="orange"
+)
+indefintegral_button.place(relx=0.75,rely=0.5,anchor=tk.CENTER)
+
+
+# Output label
+
+result_label = tk.Label(window, width=60, height=2, bg="white", text="")
+result_label.place(relx=0.5,rely=0.65,anchor=tk.CENTER)
+
+# Cross Sections
+
+shape_menu = tk.OptionMenu(window, shape_var, "square", "semicircle", "triangle")
+shape_menu.place(relx=0.5,rely=0.75,anchor=tk.CENTER)
+
+cross_graph_button = tk.Button(window,text="Cross Section Graph",command=cross_section_graph,bg="orange")
+cross_graph_button.place(relx=0.5,rely=0.85,anchor=tk.CENTER)
+
+window.mainloop()
+
